@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Place Order & Pay</title>
+    <style>
+        
+    </style>
+    
+</head>
+<body>
+
+<div class="checkout-card">
+    <h2>Buy Now</h2>
+
+    {% csrf_token %}
+    <div class="form-group">
+        <label for="auth_token">API Token</label>
+        <input type="text" id="auth_token" placeholder="Enter your API token">
+    </div>
+    </br/>
+
+
+    <div class="checkout-box">
+        <label>Product</label>
+        <select id="product_id">
+            
+            <option value="">-- Select Product --</option>
+            {% for product in products %}
+            <option value={{product.id}}>{{product.p_name}}</option>
+           
+            {% endfor %}
+        </select>
+        <br/><br/>
+        <label>Quantity</label>
+        <input type="number" id="quantity" value="1" min="1">
+        <br/><br/>
+
+
+        <label>Payment Method</label><br/>
+
+        {% for payment_method in payment_methods %}
+            <input
+                type="radio"
+                id="pm_{{ payment_method }}"
+                name="payment_method"
+                value="{{ payment_method }}"
+            >
+            <label for="pm_{{ payment_method }}">
+                {{ payment_method|upper }}
+            </label>
+            <br>
+        {% endfor %}
+        <button onclick="placeOrder()">Place Order & Pay</button>
+    </div>
+
+<script>
+
+    function placeOrder() {
+        console.log("placeprder fuction called() ===============>")
+        const token = document.getElementById("auth_token").value;
+        const product_id = document.getElementById("product_id").value;
+        const quantity = document.getElementById("quantity").value;
+
+        const paymentInput = document.querySelector(
+            'input[name="payment_method"]:checked'
+        );
+
+        if (!paymentInput) {
+            alert("Please select a payment method");
+            return;
+        }
+
+        const payment_method = paymentInput.value;
+        console.log("payment_method ===============>",payment_method)
+        console.log("all fetched data by placeorder() =================>",token,product_id,quantity,payment_method)
+        fetch("/CreatePaymentLinkAPIView/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Token ${token}`
+            },
+            body: JSON.stringify({ product_id, quantity ,payment_method})
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log(data)
+            if (data.payment_method){
+                window.confirm(" cod order confirmed ");
+            }
+            else{
+                if (data.payment_link) {
+                    window.location.href = data.payment_link; 
+                } else {
+                    alert("Error creating payment link");
+                }
+            }
+            
+            
+        });
+    }
+</script>
+
+
+{% comment %} const BASE_URL = "http://127.0.0.1:8000";
+const TOKEN = "b73e0d11c2131e3867878c01984631123ad3cef5";
+
+
+function placeOrder() {
+    console.log(" placeorder function is called ()");
+    fetch(`${BASE_URL}/PlaceOrder/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Token ${TOKEN}`
+        },
+        body: JSON.stringify({
+            payment_method: "online",
+            currency: "INR",
+            product_id: document.getElementById("product_id").value,
+            quantity: document.getElementById("quantity").value,
+        })
+    })
+    
+    .then(res => res.json())
+    .then(res => {
+        console.log("Place Order Response =============>", res);
+
+        // data must contain razorpay_order_id
+        console.log("data ===============>",res.data);
+        openRazorpayCheckout(res.data);
+    })
+    .catch(err => console.error(err));
+}
+
+function openRazorpayCheckout(data) {
+    console.log("data ===============>",data)
+    const options = {
+        key: data.razorpay_key , // or hardcode key id
+        amount: data.amount, // paise
+        currency: data.currency,
+        order_id: data.razorpay_order_id,
+        
+        name: "My E-Commerce App",
+        description: "Order Payment",
+        
+        handler: function (response) {
+            
+            console.log("Razorpay Success:", response);
+            verifyPayment(response);
+            console.log("verify order Success:", data);
+
+        },
+
+        theme: {
+            color: "#3399cc"
+        }
+    };
+    console.log("options ======================>",options)
+    const rzp = new Razorpay(options);
+    console.log("razorpay() called ==========>")
+    rzp.open();
+}
+
+
+function verifyPayment(response) {
+
+    fetch(`${BASE_URL}/VerifyRazorpayPayment/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Token ${TOKEN}`
+        },
+        body: JSON.stringify({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature
+            
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log("Verify Payment Response:", data);
+        alert("Payment Successful & Verified!");
+    })
+    .catch(err => console.error(err));
+ }
+ </script> {% endcomment %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</body>
+</html>
